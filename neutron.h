@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#import <iostream>
 #import <cmath>
 #import <vector>
 #import "RandomManager.h"
@@ -97,11 +98,14 @@ public:
      * @param crossSections A set of continuous energy macroscopic cross sections.
      * @param results A mutable struct of this neutrons tally contributions.
      */
-    void simulate_implicit(const CrossSections *crossSections, Local_Results *results) {
+    void simulate(const CrossSections *crossSections, Local_Results *results) {
         bool alive = true;
         std::vector<double> XSec(8);
         std::vector<double> XSec_sums(3);
+        const std::vector<float> atomic_weights = crossSections->targetMasses;
         double avg_nu = 0.0;
+        double scatter;
+        double energy_min = 0.0;
         unsigned int g{};
         while (alive) {
             XSec = crossSections->getCrossSections(energy);
@@ -114,7 +118,6 @@ public:
                 crossSections->neutronsFromFission[0] * XSec[5]) / XSec_sums[2];
 
             g = energy_to_group();
-            //std::cout << "g: " << g << "\n";
 
             //collision estimator of flux
             collision_flux_estimator(g, results, XSec[7]);
@@ -127,7 +130,16 @@ public:
             results->capture_rr[g] += weight * XSec_sums[1] / XSec[7];
 
             //Scatter Contribution
-            new_energy = RandomManager::getRandomFrac() * (energy - ENERGY_MIN) + ENERGY_MIN;
+            scatter = RandomManager::getRandomFrac() * XSec_sums[0];
+            for (int i = 0; i < 3; ++i) {
+                if (scatter <= XSec[3 * i]) {
+                    energy_min = std::pow((crossSections->targetMasses[i] - 1) / (crossSections->targetMasses[i] + 1), 2.0) * energy;;
+                    break;
+                }
+                scatter -= XSec[3 * i];
+            }
+
+            new_energy = RandomManager::getRandomFrac() * (energy - energy_min) + energy_min;
             results->scatter_rr[scattering_index(g, results->scatter_rr.size())] += weight * XSec_sums[0] / XSec[7];
 
             weight *= XSec_sums[0] / XSec[7];
@@ -140,54 +152,6 @@ public:
                 }
                 // neutron lives or is dead and weight doesn't matter
                 weight *= HYPER_ROUNDS;
-            }
-        }
-    }
-
-    /**
-     * @breif Simulates this neutron via Analog Monte Carlo.
-     * @param crossSections A set of continuous energy macroscopic cross sections.
-     * @param results A mutable struct of this neutrons tally contributions.
-     */
-    void simulate_analog(const CrossSections *crossSections, Local_Results *results) {
-        bool alive = true;
-        std::vector<double> XSec(8);
-        double collision;
-        unsigned int i;
-
-        unsigned int g{};
-        while (alive) {
-            XSec = crossSections->getCrossSections(energy);
-            g = energy_to_group();
-
-            //determining the type of interaction
-            collision = RandomManager::getRandomFrac() * XSec[7];
-            for (i = 0; i < 7; ++i) {
-                if (collision < XSec[i])
-                    break;
-                collision -= XSec[i];
-            }
-            collision_flux_estimator(g, results, XSec[7]);
-
-            //given cross section vector structure, the modulo can determine the type of interaction
-            switch (i % 3) {
-                case 0:
-                    //Scatter
-                    new_energy = RandomManager::getRandomFrac() * (energy - ENERGY_MIN) + ENERGY_MIN;
-                    results->scatter_rr[scattering_index(g, results->scatter_rr.size())] += weight;
-                    energy = new_energy;
-                    break;
-                case 1:
-                    //Capture
-                    results->capture_rr[g] += weight;
-                    alive = false;
-                    break;
-                default:
-                    const double nu = crossSections->neutronsFromFission[i / 3];
-                    results->k_inf += static_cast<float>(weight * nu);
-                    results->fission_rr[g] += weight;
-                    alive = false;
-                    break;
             }
         }
     }
@@ -239,31 +203,12 @@ private:
 };
 
 /**
- * @brief Handles the entire lifetime of a single neutron. Simulates with Analog Monte Carlo.
- * @param crossSections A set of continuous energy macroscopic cross sections.
- * @param fission_bank
- * @param results A mutable struct of this neutrons tally contributions.
- */
-inline void runNeutronAnalog(const CrossSections *crossSections, const std::vector<Fission_Neutron> *fission_bank, Local_Results *results) {
-    Fission_Neutron banked_neutron{.weight = 1.0f};
-    if (!fission_bank->empty()) {
-        const int index = static_cast<int>(RandomManager::getRandomFrac() * static_cast<double>(fission_bank->size()));
-        banked_neutron = fission_bank->at(index);
-    }
-
-    results->N += banked_neutron.weight;
-
-    neutron n(banked_neutron);
-    n.simulate_analog(crossSections, results);
-}
-
-/**
  * @brief Handles the entire lifetime of a single neutron. Simulates with Implicit Capture.
  * @param crossSections A set of continuous energy macroscopic cross sections.
  * @param fission_bank
  * @param results A mutable struct of this neutrons tally contributions.
  */
-inline void runNeutronImplicit(const CrossSections *crossSections, const std::vector<Fission_Neutron> *fission_bank, Local_Results *results) {
+inline void runNeutron(const CrossSections *crossSections, const std::vector<Fission_Neutron> *fission_bank, Local_Results *results) {
     Fission_Neutron banked_neutron{.weight = 1.0f};
     if (!fission_bank->empty()) {
         const int index = static_cast<int>(RandomManager::getRandomFrac() * static_cast<double>(fission_bank->size()));
@@ -273,7 +218,7 @@ inline void runNeutronImplicit(const CrossSections *crossSections, const std::ve
     results->N += banked_neutron.weight;
 
     neutron n(banked_neutron);
-    n.simulate_implicit(crossSections, results);
+    n.simulate(crossSections, results);
 }
 
 /**

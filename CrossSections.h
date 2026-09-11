@@ -51,13 +51,14 @@ public:
         std::vector<double> XSec_U = getFissionableCrossSections(energy, &U238);
         XSec.insert(XSec.end(), XSec_U.begin(), XSec_U.end());
 
-        XSec.push_back(0.1668101);
+        XSec.push_back(1000);
         XSec.push_back(std::accumulate(XSec.begin(), XSec.end(), 0.0));
 
         return XSec;
     }
 
     const std::vector<float> neutronsFromFission = {2.88f, 0.0f, 0.0f};
+    const std::vector<float> targetMasses = {239.0f, 238.0f, 12.0f};
 
 private:
     /**
@@ -93,7 +94,7 @@ private:
     };
 
     const Fissionable_Isotope U238 = {
-        .N = 0.124954f, .g_J = 1.0f, .E_lambda = 6.674280e0, .gamma_n = 1.4923e-3,
+        .N = 0.124954f, .g_J = 1.0f, .E_lambda = 6.674280e0, .gamma_n = 1.4923e-2,
         .gamma_gamma = 2.2711e-2, .gamma_f = 9.88e-9, .a_c = 9.48e-4
     };
 };

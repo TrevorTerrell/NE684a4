@@ -38,7 +38,7 @@ int main() {
                 for (unsigned int j = 0; j < particles_per_core; ++j) {
                     Local_Results results;
                     results.flux.resize(FINE_FLUX_GROUPS);
-                    runNeutronImplicit(&continuous_xsec, &fission_bank, &results);
+                    runNeutron(&continuous_xsec, &fission_bank, &results);
 
                     thread_results.N += results.N;
                     thread_results.k_inf += results.k_inf;

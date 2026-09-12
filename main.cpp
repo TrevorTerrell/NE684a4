@@ -16,7 +16,8 @@ int main() {
 
     const unsigned int particles_per_core = NUM_PARTICLES / num_cores;
 
-    CrossSections continuous_xsec;
+    DopplerCrossSections doppler_cross_sections;
+    doppler_cross_sections.LoadCrossSections(300.0);
     {
         std::cout << "Running simulation with " << NUM_PARTICLES << " particles in implicit mode...\n";
 
@@ -31,14 +32,14 @@ int main() {
         std::vector<std::future<Semilocal_Results>> futures;
 
         for (int i = 0; i < num_cores; ++i) {
-            futures.push_back(std::async(std::launch::async, [&continuous_xsec, &fission_bank, particles_per_core]() {
+            futures.push_back(std::async(std::launch::async, [&doppler_cross_sections, &fission_bank, particles_per_core]() {
                 Semilocal_Results thread_results;
                 thread_results.flux.resize(FINE_FLUX_GROUPS);
                 thread_results.flux_2.resize(FINE_FLUX_GROUPS);
                 for (unsigned int j = 0; j < particles_per_core; ++j) {
                     Local_Results results;
                     results.flux.resize(FINE_FLUX_GROUPS);
-                    runNeutron(&continuous_xsec, &fission_bank, &results);
+                    runNeutron(&doppler_cross_sections, &fission_bank, &results);
 
                     thread_results.N += results.N;
                     thread_results.k_inf += results.k_inf;
@@ -105,5 +106,5 @@ int main() {
         }
     }
 
-    return !ExportCrossSectionsToCSV(&continuous_xsec, "continuous_xsec.csv");
+    return 0;
 }

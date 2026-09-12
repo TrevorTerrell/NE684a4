@@ -98,7 +98,7 @@ public:
      * @param crossSections A set of continuous energy macroscopic cross sections.
      * @param results A mutable struct of this neutrons tally contributions.
      */
-    void simulate(const CrossSections *crossSections, Local_Results *results) {
+    void simulate(const DopplerCrossSections *crossSections, Local_Results *results) {
         bool alive = true;
         std::vector<double> XSec(8);
         std::vector<double> XSec_sums(3);
@@ -208,7 +208,7 @@ private:
  * @param fission_bank
  * @param results A mutable struct of this neutrons tally contributions.
  */
-inline void runNeutron(const CrossSections *crossSections, const std::vector<Fission_Neutron> *fission_bank, Local_Results *results) {
+inline void runNeutron(const DopplerCrossSections *crossSections, const std::vector<Fission_Neutron> *fission_bank, Local_Results *results) {
     Fission_Neutron banked_neutron{.weight = 1.0f};
     if (!fission_bank->empty()) {
         const int index = static_cast<int>(RandomManager::getRandomFrac() * static_cast<double>(fission_bank->size()));

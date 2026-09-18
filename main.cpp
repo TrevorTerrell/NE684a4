@@ -10,6 +10,7 @@
 
 int main() {
     constexpr unsigned int NUM_PARTICLES = 500000;
+    constexpr double temperature = 1200.0; //K
 
     unsigned int num_cores = std::thread::hardware_concurrency();
     if (num_cores == 0) num_cores = 4; //fallback
@@ -17,9 +18,9 @@ int main() {
     const unsigned int particles_per_core = NUM_PARTICLES / num_cores;
 
     DopplerCrossSections doppler_cross_sections;
-    doppler_cross_sections.LoadCrossSections(300.0);
+    doppler_cross_sections.LoadCrossSections(temperature);
     {
-        std::cout << "Running simulation with " << NUM_PARTICLES << " particles in implicit mode...\n";
+        std::cout << "Running simulation at " << temperature << "K with " << NUM_PARTICLES << " particles in implicit mode...\n";
 
         std::vector<Fission_Neutron> fission_bank;
         std::vector<Fission_Neutron> fission_bank_new;
@@ -101,9 +102,9 @@ int main() {
         std::cout << "Elapsed time: " << dt / 1e6 << " ms \n";
         std::cout << "FOM: " << 1.0 / (dt / 1e9 * crit_var) << "\n";
 
-        if (!exportTallies(&tallies, "finegroup_flux_i.csv")) {
-            return 1;
-        }
+        // if (!exportTallies(&tallies, std::format("finegroup_flux_{}K.csv", temperature))) {
+        //     return 1;
+        // }
     }
 
     return 0;

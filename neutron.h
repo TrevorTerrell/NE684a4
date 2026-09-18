@@ -13,8 +13,8 @@
 #define NE684A2_NEUTRON_H
 // k_eff optimal: 1e-3, 1
 // general: 1e-5?, 10?
-#define HYPER_WEIGHT_THRESH 1e-3
-#define HYPER_ROUNDS INFINITY
+#define HYPER_WEIGHT_THRESH 1e-2
+#define HYPER_ROUNDS 10
 
 #define FINE_FLUX_GROUPS 1000
 

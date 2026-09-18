@@ -121,7 +121,7 @@ public:
 
     static double internal_function(const unsigned int interaction, const double velocity, const double v_prime, const double beta, const Fissionable_Isotope *isotope) {
         if (v_prime <= 0.0) return 0.0;
-        double xSec_0K = CrossSections0K::getFissionableCrossSection(interaction, v_prime, isotope);
+        double xSec_0K = CrossSections0K::getFissionableCrossSection(interaction, std::pow(v_prime,2.0), isotope);
         if (isotope->do_scattering_override) {
             xSec_0K = 1000;
         }
@@ -194,6 +194,20 @@ public:
     const std::vector<float> neutronsFromFission = {2.88f, 0.0f, 0.0f};
     const std::vector<float> targetMasses = {239.0f, 238.0f, 12.0f};
 
+    const Fissionable_Isotope Pu239 = {
+        .N = 1.0f, .g_J = 3.0f/4.0f, .E_lambda = 2.956243e-1, .gamma_n = 7.947046e-5,
+        .gamma_gamma = 3.982423e-2, .gamma_f = 5.619673e-2, .a_c = 9.41e-4, .mass = 239
+    };
+
+    const Fissionable_Isotope U238 = {
+        .N = 0.124954f, .g_J = 1.0f, .E_lambda = 6.674280e0, .gamma_n = 1.4923e-2,
+        .gamma_gamma = 2.2711e-2, .gamma_f = 9.88e-9, .a_c = 9.48e-4, .mass = 238
+    };
+
+    const Fissionable_Isotope C12 = {
+        0.0f, 0.0f, 0.0, 0.0, 0.0, 0.0, 0.0, 12.0, true
+    };
+
 private:
     void write_cross_sections(const double temperature) const {
         ///starting at e_min, walk through vector of cross sections at this energy and append to file
@@ -207,12 +221,14 @@ private:
         outfile.clear();
 
         // Step 2: determine the point spacing in lethargy
-        constexpr unsigned int N = 10000;
-        const double delta_l = std::log(ENERGY_MAX / ENERGY_MIN) / N;
+        const unsigned int N = 10000;
+        const double logEmin = std::log(ENERGY_MIN);
+        const double logEmax = std::log(ENERGY_MAX);
+        const double delta_logE = (logEmax - logEmin) / (N - 1);
 
         // Step 3a: cycle through each energy point
         for (unsigned int i = 0; i< N; ++i) {
-            double energy = std::exp(std::log(ENERGY_MIN) + i * delta_l);
+            double energy = std::exp(logEmin + i * delta_logE);
             outfile << energy << ",";
 
                 // Step 3b and 3c should be compressible by making a vector of my isotopes
@@ -238,20 +254,6 @@ private:
         }
         outfile.close();
     }
-
-    const Fissionable_Isotope Pu239 = {
-        .N = 1.0f, .g_J = 3.0f/4.0f, .E_lambda = 2.956243e-1, .gamma_n = 7.947046e-5,
-        .gamma_gamma = 3.982423e-2, .gamma_f = 5.619673e-2, .a_c = 9.41e-4, .mass = 239
-    };
-
-    const Fissionable_Isotope U238 = {
-        .N = 0.124954f, .g_J = 1.0f, .E_lambda = 6.674280e0, .gamma_n = 1.4923e-2,
-        .gamma_gamma = 2.2711e-2, .gamma_f = 9.88e-9, .a_c = 9.48e-4, .mass = 238
-    };
-
-    const Fissionable_Isotope C12 = {
-        0.0f, 0.0f, 0.0, 0.0, 0.0, 0.0, 0.0, 12.0, true
-    };
 
     std::vector<std::vector<double>> LoadedCrossSections;
 };
